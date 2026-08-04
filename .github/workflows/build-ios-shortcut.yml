@@ -1,0 +1,51 @@
+name: Build signed iPhone shortcut
+
+on:
+  push:
+    branches:
+      - build-ios-files-shortcut
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+
+      - name: Build Cherri compiler
+        run: |
+          git clone --depth 1 https://github.com/electrikmilk/cherri.git /tmp/cherri
+          cd /tmp/cherri
+          go build -o cherri .
+
+      - name: Compile and sign shortcut
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/dist"
+          cp "$GITHUB_WORKSPACE/shortcut-builder/Gestor_Inteligente_Archivos.cherri" /tmp/cherri/
+          cd /tmp/cherri
+          ./cherri Gestor_Inteligente_Archivos.cherri --hubsign --share=anyone
+          find . -maxdepth 1 -name '*.shortcut' -print -exec cp {} "$GITHUB_WORKSPACE/dist/Gestor_Inteligente_Archivos.shortcut" \;
+          test -s "$GITHUB_WORKSPACE/dist/Gestor_Inteligente_Archivos.shortcut"
+
+      - name: Add source and instructions
+        run: |
+          cp shortcut-builder/Gestor_Inteligente_Archivos.cherri dist/
+          cat > dist/LEEME.txt <<'EOF'
+          1. Abre Gestor_Inteligente_Archivos.shortcut desde Archivos en el iPhone.
+          2. Pulsa Añadir atajo.
+          3. La primera ejecución solicitará permiso para acceder a las carpetas elegidas.
+          4. Los borrados se envían a Eliminados recientemente y requieren confirmación.
+          EOF
+
+      - name: Upload shortcut
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gestor-Inteligente-Archivos-iPhone
+          path: dist/
+          if-no-files-found: error

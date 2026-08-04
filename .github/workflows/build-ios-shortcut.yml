@@ -32,6 +32,7 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/dist"
           cp "$GITHUB_WORKSPACE/shortcut-builder/Gestor_Inteligente_Archivos.cherri" /tmp/cherri/
           cd /tmp/cherri
+          sed -i 's/#define version 18.0/#define version 18/' Gestor_Inteligente_Archivos.cherri
           ./cherri Gestor_Inteligente_Archivos.cherri --hubsign --share=anyone
           find . -maxdepth 1 -name '*.shortcut' -print -exec cp {} "$GITHUB_WORKSPACE/dist/Gestor_Inteligente_Archivos.shortcut" \;
           test -s "$GITHUB_WORKSPACE/dist/Gestor_Inteligente_Archivos.shortcut"

@@ -32,10 +32,13 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/dist"
           cp "$GITHUB_WORKSPACE/shortcut-builder/Gestor_Inteligente_Archivos.cherri" /tmp/cherri/
           cd /tmp/cherri
+          cat > actions/filedate.cherri <<'EOF'
+          action 'properties.files' getFileDate(variable file: 'WFFolder', fileDetail detail: 'WFContentItemPropertyName'): date
+          EOF
           sed -i 's/#define version 18.0/#define version 18/' Gestor_Inteligente_Archivos.cherri
+          sed -i "/#include 'actions\/documents'/a #include 'actions/filedate'" Gestor_Inteligente_Archivos.cherri
           sed -i -E '/prompt\(/ s/, false\)/)/' Gestor_Inteligente_Archivos.cherri
           sed -i -E '/@(projectName|tripName|personName) = prompt/ s/= prompt\((.*)\)$/= text(prompt(\1))/' Gestor_Inteligente_Archivos.cherri
-          sed -i "/action 'file.move'/a action 'properties.files' getFileDate(variable file: 'WFFolder', fileDetail detail: 'WFContentItemPropertyName'): date" Gestor_Inteligente_Archivos.cherri
           sed -i -E '/@(reportModified|oldModified|combinedModified) = getFileDetail/ s/getFileDetail/getFileDate/' Gestor_Inteligente_Archivos.cherri
           ./cherri Gestor_Inteligente_Archivos.cherri --hubsign --share=anyone
           find . -maxdepth 1 -name '*.shortcut' -print -exec cp {} "$GITHUB_WORKSPACE/dist/Gestor_Inteligente_Archivos.shortcut" \;

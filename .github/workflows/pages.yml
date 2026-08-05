@@ -24,10 +24,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Prepare site for project path
+      - name: Prepare site and installable iPhone PWA
         run: |
           mkdir -p _site
           rsync -a --exclude '.git' --exclude '.github' --exclude '_site' ./ _site/
+
+          tmpdir="$(mktemp -d)"
+          cat capacitor-mobile/source.part* | base64 --decode > "$tmpdir/source.zip"
+          unzip -oq "$tmpdir/source.zip" -d "$tmpdir/project"
+          mkdir -p _site/app
+          rsync -a "$tmpdir/project/www/" _site/app/
+
           find _site -type f \( -name '*.html' -o -name '*.css' -o -name '*.js' -o -name '*.json' \) -print0 | xargs -0 sed -i \
             -e 's|"/assets/|"/winston/assets/|g' \
             -e "s|'/assets/|'/winston/assets/|g" \
@@ -35,6 +42,7 @@ jobs:
             -e 's|"/media/|"/winston/media/|g' \
             -e "s|'/media/|'/winston/media/|g" \
             -e 's|url(/media/|url(/winston/media/|g'
+
           touch _site/.nojekyll
 
       - name: Configure Pages

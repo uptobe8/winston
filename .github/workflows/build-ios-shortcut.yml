@@ -60,7 +60,11 @@ jobs:
               '                        @combinedModified = getFileDetail(@combinedFile, "Last Modified Date")',
               '                        @combinedModified = getFileDetail(@combinedFile, "Last Modified Date")\n                        @combinedModifiedText = formatTimestamp(@combinedModified, "Short", "Short")\n                        @combinedModifiedDate = date(@combinedModifiedText)'
           )
-          s = s.replace('if @combinedModified < @combinedCutoff || @combinedSize >= @combinedMB {', 'if @combinedModifiedDate < @combinedCutoff || @combinedSize >= @combinedMB {')
+          s = s.replace(
+              '                        @combinedSize = fileSize(@combinedFile, "Megabytes")',
+              '                        @combinedSize = fileSize(@combinedFile, "Megabytes")\n                        @combinedSizeText = text(@combinedSize)\n                        @combinedSizeNumber = getNumbers(@combinedSizeText)'
+          )
+          s = s.replace('if @combinedModified < @combinedCutoff || @combinedSize >= @combinedMB {', 'if @combinedModifiedDate < @combinedCutoff || @combinedSizeNumber >= @combinedMB {')
           p.write_text(s)
           PY
           ./cherri Gestor_Inteligente_Archivos.cherri --hubsign --share=anyone

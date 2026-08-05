@@ -1,0 +1,26 @@
+{
+  "name": "santuario-winston-capacitor",
+  "version": "34.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Santuario Winston PWA + Capacitor Android, local y offline",
+  "scripts": {
+    "start": "node server.mjs",
+    "check": "node --check server.mjs && node --check www/assets/local-api.js && node --check www/assets/app.js",
+    "cap:add:android": "npx cap add android",
+    "cap:sync": "npx cap sync android",
+    "android": "npx cap open android",
+    "build:apk": "cd android && ./gradlew assembleDebug",
+    "qa": "npm run check && node qa.mjs"
+  },
+  "dependencies": {
+    "@capacitor/core": "8.4.2"
+  },
+  "devDependencies": {
+    "@capacitor/android": "8.4.2",
+    "@capacitor/cli": "8.4.2"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

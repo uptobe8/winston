@@ -1,0 +1,87 @@
+name: Build Santuario Winston iOS
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "capacitor-mobile/**"
+      - ".github/workflows/build-winston-ios.yml"
+  workflow_dispatch:
+
+jobs:
+  ios:
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: capacitor-mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore reviewed v34 Capacitor project
+        run: |
+          cat source.part* | base64 --decode > source.zip
+          unzip -oq source.zip -d .
+          rm -f source.zip source.part*
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Capacitor iOS
+        run: |
+          npm install --no-audit --no-fund
+          npm install --save-dev @capacitor/ios@8.4.2 --no-audit --no-fund
+
+      - name: Validate PWA
+        run: npm run qa
+
+      - name: Generate iOS project
+        run: |
+          npx cap add ios
+          npx cap sync ios
+
+      - name: Configure iPhone permissions
+        run: |
+          PLIST="ios/App/App/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string Santuario Winston necesita la cámara para registrar fotografías." "$PLIST" || true
+          /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryUsageDescription string Santuario Winston necesita acceder a tus fotos para adjuntarlas a los registros." "$PLIST" || true
+          /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryAddUsageDescription string Santuario Winston puede guardar fotografías generadas por la aplicación." "$PLIST" || true
+          /usr/libexec/PlistBuddy -c "Add :NSLocationWhenInUseUsageDescription string Santuario Winston puede usar tu ubicación cuando la solicites dentro de la aplicación." "$PLIST" || true
+
+      - name: Validate Xcode build without signing
+        run: |
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build-ios \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Package iOS delivery
+        run: |
+          mkdir -p dist
+          cp -R build-ios/Build/Products/Debug-iphonesimulator/App.app dist/Santuario-Winston-Simulator.app
+          zip -qry dist/Santuario-Winston-Simulator-App.zip dist/Santuario-Winston-Simulator.app
+          rm -rf dist/Santuario-Winston-Simulator.app
+          zip -qry dist/Santuario-Winston-iOS-Xcode-v34.zip ios package.json package-lock.json capacitor.config.json www README.md ACCESO.txt BUILD-REPORT.json
+          cat > dist/INSTALACION-IPHONE.txt <<'EOF'
+SANTUARIO WINSTON · INSTALACIÓN EN IPHONE
+
+1. Abre Santuario-Winston-iOS-Xcode-v34.zip en un Mac.
+2. Abre ios/App/App.xcodeproj con Xcode.
+3. Conecta el iPhone al Mac.
+4. En Xcode selecciona el proyecto App, pestaña Signing & Capabilities.
+5. Elige tu Apple ID/Team y deja que Xcode gestione la firma automáticamente.
+6. Selecciona tu iPhone como dispositivo y pulsa Run.
+
+El proyecto está validado sin firma. Apple exige una identidad de firma para instalarlo en un iPhone físico; esa identidad pertenece a la cuenta Apple del propietario.
+EOF
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Santuario-Winston-iOS-v34
+          path: capacitor-mobile/dist/*
+          if-no-files-found: error
+          retention-days: 30

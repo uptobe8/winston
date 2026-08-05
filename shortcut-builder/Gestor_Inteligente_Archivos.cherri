@@ -1,4 +1,4 @@
-#define name Organizador Descargas
+#define name Organizador Descargas v2
 #define color blue
 #define glyph folder
 #define version 18
@@ -14,6 +14,9 @@ action 'file.move' moveFile(&variable file: 'WFFile', &variable folder: 'WFFolde
 
 @downloads = file(Downloads)
 @originalItems = getFolderContents(@downloads, false)
+@totalItems = count(@originalItems)
+@largestItems = filterFiles(@originalItems, 30, "File Size", "Biggest First")
+@oldestItems = filterFiles(@originalItems, 50, "Last Modified Date", "Oldest First")
 
 @reportsFolder = createFolder("00_INFORMES", @downloads)
 @clientsFolder = createFolder("01_CLIENTES_Y_PROYECTOS", @downloads)
@@ -79,57 +82,48 @@ for item in @originalItems {
     }
 }
 
-@allItems = getFolderContents(@downloads, true)
-@largestItems = filterFiles(@allItems, 50, "File Size", "Biggest First")
-@oldestItems = filterFiles(@allItems, 100, "Last Modified Date", "Oldest First")
-@reportText = "INFORME AUTOMÁTICO DE DESCARGAS\n\nArchivos organizados: {@organized}\n\n50 ARCHIVOS MÁS PESADOS\n"
+alert("Analizados: {@totalItems}\nOrganizados: {@organized}\nCarpetas creadas: 11\nNo se ha borrado ningún archivo.", "Organización terminada")
 
-for largeFile in @largestItems {
-    @largeType = typeOf(@largeFile)
-    if @largeType != "Folder" {
-        @largeName = getFileDetail(@largeFile, "Name")
-        @largeSize = fileSize(@largeFile, "Megabytes")
-        @largeModified = getFileDetail(@largeFile, "Last Modified Date")
-        @largeModifiedText = formatTimestamp(@largeModified, "Short", "Short")
-        @largePath = getFileDetail(@largeFile, "File Path")
-        @reportText += "\n{@largeName}\nTamaño: {@largeSize} MB | Modificado: {@largeModifiedText}\n{@largePath}\n"
-    }
-}
+menu "Organización terminada" {
+    item "Cerrar":
+        nothing()
 
-@reportText += "\n\n100 ARCHIVOS MÁS ANTIGUOS POR ÚLTIMA MODIFICACIÓN\n"
+    item "Crear informe":
+        @reportText = "INFORME DE DESCARGAS\n\nAnalizados: {@totalItems}\nOrganizados: {@organized}\n\n30 ARCHIVOS MÁS PESADOS\n"
 
-for oldFile in @oldestItems {
-    @oldType = typeOf(@oldFile)
-    if @oldType != "Folder" {
-        @oldName = getFileDetail(@oldFile, "Name")
-        @oldSize = fileSize(@oldFile, "Megabytes")
-        @oldModified = getFileDetail(@oldFile, "Last Modified Date")
-        @oldModifiedText = formatTimestamp(@oldModified, "Short", "Short")
-        @oldPath = getFileDetail(@oldFile, "File Path")
-        @reportText += "\n{@oldName}\nTamaño: {@oldSize} MB | Modificado: {@oldModifiedText}\n{@oldPath}\n"
-    }
-}
+        for largeFile in @largestItems {
+            @largeType = typeOf(@largeFile)
+            if @largeType != "Folder" {
+                @largeName = getFileDetail(@largeFile, "Name")
+                @largeSize = fileSize(@largeFile, "Megabytes")
+                @largeModified = getFileDetail(@largeFile, "Last Modified Date")
+                @largeModifiedText = formatTimestamp(@largeModified, "Short", "Short")
+                @reportText += "\n{@largeName}\nTamaño: {@largeSize} MB | Modificado: {@largeModifiedText}\n"
+            }
+        }
 
-@reportDocument = text(@reportText)
-@namedReport = setName(@reportDocument, "Informe_Descargas.txt", true)
-@temporaryReport = saveFile("Informe_Descargas.txt", @namedReport, true)
-moveFile(@temporaryReport, @reportsFolder, true)
+        @reportText += "\n\n50 ARCHIVOS MÁS ANTIGUOS\n"
 
-menu "Descargas organizadas: {@organized} archivos" {
-    item "Terminar":
-        alert("La estructura está dentro de iCloud Drive/Descargas. El informe está en 00_INFORMES.", "Organización terminada")
+        for oldFile in @oldestItems {
+            @oldType = typeOf(@oldFile)
+            if @oldType != "Folder" {
+                @oldName = getFileDetail(@oldFile, "Name")
+                @oldSize = fileSize(@oldFile, "Megabytes")
+                @oldModified = getFileDetail(@oldFile, "Last Modified Date")
+                @oldModifiedText = formatTimestamp(@oldModified, "Short", "Short")
+                @reportText += "\n{@oldName}\nTamaño: {@oldSize} MB | Modificado: {@oldModifiedText}\n"
+            }
+        }
 
-    item "Revisar 50 archivos más pesados":
-        @heavySelected = chooseFromList(@largestItems, "Selecciona solo los archivos que quieras enviar a Eliminados recientemente", true, false)
-        @heavyCount = count(@heavySelected)
-        confirm("Se enviarán {@heavyCount} archivos a Eliminados recientemente.", "Confirmar eliminación")
-        deleteFiles(@heavySelected, false)
-        alert("Archivos enviados a Eliminados recientemente.")
+        @reportDocument = text(@reportText)
+        @namedReport = setName(@reportDocument, "Informe_Descargas.txt", true)
+        @temporaryReport = saveFile("Informe_Descargas.txt", @namedReport, true)
+        moveFile(@temporaryReport, @reportsFolder, true)
+        alert("Informe creado en 00_INFORMES.", "Informe terminado")
 
-    item "Revisar 100 archivos más antiguos":
-        @oldSelected = chooseFromList(@oldestItems, "Selecciona solo los archivos que quieras enviar a Eliminados recientemente", true, false)
-        @oldCount = count(@oldSelected)
-        confirm("Se enviarán {@oldCount} archivos a Eliminados recientemente.", "Confirmar eliminación")
-        deleteFiles(@oldSelected, false)
-        alert("Archivos enviados a Eliminados recientemente.")
+    item "Ver 30 más pesados":
+        quicklook(@largestItems)
+
+    item "Ver 50 más antiguos":
+        quicklook(@oldestItems)
 }

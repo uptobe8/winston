@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - build-ios-files-shortcut
-  pull_request:
-    branches:
-      - main
   workflow_dispatch:
 
 jobs:
@@ -32,53 +29,14 @@ jobs:
           mkdir -p "$GITHUB_WORKSPACE/dist"
           cp "$GITHUB_WORKSPACE/shortcut-builder/Gestor_Inteligente_Archivos.cherri" /tmp/cherri/
           cd /tmp/cherri
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path('Gestor_Inteligente_Archivos.cherri')
-          s = p.read_text()
-          s = s.replace('#define version 18.0', '#define version 18')
-          lines = []
-          for line in s.splitlines():
-              if 'prompt(' in line and line.rstrip().endswith(', false)'):
-                  line = line.rstrip()[:-8] + ')'
-              if any(f'@{name} = prompt' in line for name in ('projectName', 'tripName', 'personName')):
-                  prefix, rest = line.split('= prompt(', 1)
-                  line = prefix + '= text(prompt(' + rest + ')'
-              lines.append(line)
-          s = '\n'.join(lines) + '\n'
-          s = s.replace(
-              '                @reportModifiedText = formatTimestamp(@reportModified, "Short", "Short")',
-              '                @reportModifiedText = formatTimestamp(@reportModified, "Short", "Short")\n                @reportModifiedDate = date(@reportModifiedText)'
-          )
-          s = s.replace('if @reportModified < @cutoff {', 'if @reportModifiedDate < @cutoff {')
-          s = s.replace(
-              '                        @oldModified = getFileDetail(@oldFile, "Last Modified Date")',
-              '                        @oldModified = getFileDetail(@oldFile, "Last Modified Date")\n                        @oldModifiedText = formatTimestamp(@oldModified, "Short", "Short")\n                        @oldModifiedDate = date(@oldModifiedText)'
-          )
-          s = s.replace('if @oldModified < @oldCutoff {', 'if @oldModifiedDate < @oldCutoff {')
-          s = s.replace(
-              '                        @combinedModified = getFileDetail(@combinedFile, "Last Modified Date")',
-              '                        @combinedModified = getFileDetail(@combinedFile, "Last Modified Date")\n                        @combinedModifiedText = formatTimestamp(@combinedModified, "Short", "Short")\n                        @combinedModifiedDate = date(@combinedModifiedText)'
-          )
-          s = s.replace(
-              '                        @combinedSize = fileSize(@combinedFile, "Megabytes")',
-              '                        @combinedSize = fileSize(@combinedFile, "Megabytes")\n                        @combinedSizeText = text(@combinedSize)\n                        @combinedSizeNumber = getNumbers(@combinedSizeText)'
-          )
-          s = s.replace('if @combinedModified < @combinedCutoff || @combinedSize >= @combinedMB {', 'if @combinedModifiedDate < @combinedCutoff || @combinedSizeNumber >= @combinedMB {')
-          p.write_text(s)
-          PY
           ./cherri Gestor_Inteligente_Archivos.cherri --hubsign --share=anyone
           find . -maxdepth 1 -name '*.shortcut' -print -exec cp {} "$GITHUB_WORKSPACE/dist/Gestor_Inteligente_Archivos.shortcut" \;
           test -s "$GITHUB_WORKSPACE/dist/Gestor_Inteligente_Archivos.shortcut"
 
-      - name: Add source and instructions
+      - name: Add instructions
         run: |
-          cp shortcut-builder/Gestor_Inteligente_Archivos.cherri dist/
           cat > dist/LEEME.txt <<'EOF'
-          1. Abre Gestor_Inteligente_Archivos.shortcut desde Archivos en el iPhone.
-          2. Pulsa Añadir atajo.
-          3. La primera ejecución solicitará permiso para acceder a las carpetas elegidas.
-          4. Los borrados se envían a Eliminados recientemente y requieren confirmación.
+          Abre Gestor_Inteligente_Archivos.shortcut desde Archivos en el iPhone y pulsa Añadir atajo.
           EOF
 
       - name: Upload shortcut

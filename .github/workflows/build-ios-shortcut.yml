@@ -35,6 +35,7 @@ jobs:
           sed -i 's/#define version 18.0/#define version 18/' Gestor_Inteligente_Archivos.cherri
           sed -i -E '/prompt\(/ s/, false\)/)/' Gestor_Inteligente_Archivos.cherri
           sed -i -E '/@(projectName|tripName|personName) = prompt/ s/= prompt\((.*)\)$/= text(prompt(\1))/' Gestor_Inteligente_Archivos.cherri
+          sed -i -E '/@(reportModified|oldModified|combinedModified) = getFileDetail/ s/= getFileDetail\((.*)\)$/= getDates(getFileDetail(\1))/' Gestor_Inteligente_Archivos.cherri
           ./cherri Gestor_Inteligente_Archivos.cherri --hubsign --share=anyone
           find . -maxdepth 1 -name '*.shortcut' -print -exec cp {} "$GITHUB_WORKSPACE/dist/Gestor_Inteligente_Archivos.shortcut" \;
           test -s "$GITHUB_WORKSPACE/dist/Gestor_Inteligente_Archivos.shortcut"

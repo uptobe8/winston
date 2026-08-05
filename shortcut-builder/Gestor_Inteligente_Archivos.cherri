@@ -1,0 +1,129 @@
+#define name Organizador Descargas v2
+#define color blue
+#define glyph folder
+#define version 18
+#define mac false
+
+#include 'actions/documents'
+#include 'actions/calendar'
+#include 'actions/text'
+
+#ref Downloads eyJmaWxlbmFtZSI6IkRvd25sb2FkcyIsImRpc3BsYXlOYW1lIjoiRG93bmxvYWRzIiwiZmlsZUxvY2F0aW9uIjp7IldGRmlsZUxvY2F0aW9uVHlwZSI6ImlDbG91ZCIsImZpbGVQcm92aWRlckRvbWFpbklEIjoiY29tLmFwcGxlLkNsb3VkRG9jcy5pQ2xvdWREcml2ZUZpbGVQcm92aWRlciIsInJlbGF0aXZlU3VicGF0aCI6ImNvbX5hcHBsZX5DbG91ZERvY3MvRG93bmxvYWRzIn19
+
+action 'file.move' moveFile(&variable file: 'WFFile', &variable folder: 'WFFolder', bool ?replaceExisting: 'WFReplaceExisting' = false)
+
+@downloads = file(Downloads)
+@originalItems = getFolderContents(@downloads, false)
+@totalItems = count(@originalItems)
+@largestItems = filterFiles(@originalItems, 30, "File Size", "Biggest First")
+@oldestItems = filterFiles(@originalItems, 50, "Last Modified Date", "Oldest First")
+
+@reportsFolder = createFolder("00_INFORMES", @downloads)
+@clientsFolder = createFolder("01_CLIENTES_Y_PROYECTOS", @downloads)
+@travelFolder = createFolder("02_VIAJES", @downloads)
+@peopleFolder = createFolder("03_PERSONAS", @downloads)
+@screensFolder = createFolder("04_CAPTURAS", @downloads)
+@imagesFolder = createFolder("05_IMAGENES", @downloads)
+@videosFolder = createFolder("06_VIDEOS", @downloads)
+@documentsFolder = createFolder("07_DOCUMENTOS", @downloads)
+@archivesFolder = createFolder("08_COMPRIMIDOS", @downloads)
+@versionsFolder = createFolder("09_VERSIONES_Y_BORRADORES", @downloads)
+@otherFolder = createFolder("10_OTROS", @downloads)
+
+@organized = 0
+
+for item in @originalItems {
+    @itemType = typeOf(@item)
+    if @itemType != "Folder" {
+        @itemName = getFileDetail(@item, "Name")
+        @itemNameLower = lowercase(@itemName)
+        @itemExtension = getFileDetail(@item, "File Extension")
+        @itemExtensionLower = lowercase(@itemExtension)
+        @destination = @otherFolder
+
+        if @itemNameLower contains "screenshot" || @itemNameLower contains "captura" || @itemNameLower contains "pantallazo" {
+            @destination = @screensFolder
+        } else {
+            if @itemNameLower contains "version" || @itemNameLower contains "versión" || @itemNameLower contains "borrador" || @itemNameLower contains "draft" || @itemNameLower contains "copia" || @itemNameLower contains "copy" || @itemNameLower contains " v1" || @itemNameLower contains " v2" || @itemNameLower contains " v3" || @itemNameLower contains " v4" || @itemNameLower contains " v5" {
+                @destination = @versionsFolder
+            } else {
+                if @itemNameLower contains "viaje" || @itemNameLower contains "vuelo" || @itemNameLower contains "flight" || @itemNameLower contains "hotel" || @itemNameLower contains "reserva" || @itemNameLower contains "boarding" || @itemNameLower contains "billete" || @itemNameLower contains "ruta" || @itemNameLower contains "vacaciones" || @itemNameLower contains "pasaporte" {
+                    @destination = @travelFolder
+                } else {
+                    if @itemNameLower contains "cliente" || @itemNameLower contains "proyecto" || @itemNameLower contains "project" || @itemNameLower contains "brief" || @itemNameLower contains "presupuesto" || @itemNameLower contains "factura" || @itemNameLower contains "contrato" || @itemNameLower contains "propuesta" || @itemNameLower contains "campaña" || @itemNameLower contains "marca" || @itemNameLower contains "logo" {
+                        @destination = @clientsFolder
+                    } else {
+                        if @itemNameLower contains "persona" || @itemNameLower contains "selfie" || @itemNameLower contains "retrato" || @itemNameLower contains "portrait" || @itemNameLower contains "curriculum" || @itemNameLower contains "currículum" || @itemNameLower contains "dni" {
+                            @destination = @peopleFolder
+                        } else {
+                            if @itemExtensionLower == "jpg" || @itemExtensionLower == "jpeg" || @itemExtensionLower == "png" || @itemExtensionLower == "heic" || @itemExtensionLower == "webp" || @itemExtensionLower == "gif" || @itemExtensionLower == "tif" || @itemExtensionLower == "tiff" || @itemExtensionLower == "svg" {
+                                @destination = @imagesFolder
+                            } else {
+                                if @itemExtensionLower == "mp4" || @itemExtensionLower == "mov" || @itemExtensionLower == "m4v" || @itemExtensionLower == "avi" || @itemExtensionLower == "mkv" || @itemExtensionLower == "webm" {
+                                    @destination = @videosFolder
+                                } else {
+                                    if @itemExtensionLower == "pdf" || @itemExtensionLower == "doc" || @itemExtensionLower == "docx" || @itemExtensionLower == "xls" || @itemExtensionLower == "xlsx" || @itemExtensionLower == "ppt" || @itemExtensionLower == "pptx" || @itemExtensionLower == "txt" || @itemExtensionLower == "rtf" || @itemExtensionLower == "pages" || @itemExtensionLower == "numbers" || @itemExtensionLower == "key" || @itemExtensionLower == "csv" {
+                                        @destination = @documentsFolder
+                                    } else {
+                                        if @itemExtensionLower == "zip" || @itemExtensionLower == "rar" || @itemExtensionLower == "7z" || @itemExtensionLower == "gz" || @itemExtensionLower == "tar" {
+                                            @destination = @archivesFolder
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        moveFile(@item, @destination, false)
+        @organized += 1
+    }
+}
+
+alert("Analizados: {@totalItems}\nOrganizados: {@organized}\nCarpetas creadas: 11\nNo se ha borrado ningún archivo.", "Organización terminada")
+
+menu "Organización terminada" {
+    item "Cerrar":
+        nothing()
+
+    item "Crear informe":
+        @reportText = "INFORME DE DESCARGAS\n\nAnalizados: {@totalItems}\nOrganizados: {@organized}\n\n30 ARCHIVOS MÁS PESADOS\n"
+
+        for largeFile in @largestItems {
+            @largeType = typeOf(@largeFile)
+            if @largeType != "Folder" {
+                @largeName = getFileDetail(@largeFile, "Name")
+                @largeSize = fileSize(@largeFile, "Megabytes")
+                @largeModified = getFileDetail(@largeFile, "Last Modified Date")
+                @largeModifiedText = formatTimestamp(@largeModified, "Short", "Short")
+                @reportText += "\n{@largeName}\nTamaño: {@largeSize} MB | Modificado: {@largeModifiedText}\n"
+            }
+        }
+
+        @reportText += "\n\n50 ARCHIVOS MÁS ANTIGUOS\n"
+
+        for oldFile in @oldestItems {
+            @oldType = typeOf(@oldFile)
+            if @oldType != "Folder" {
+                @oldName = getFileDetail(@oldFile, "Name")
+                @oldSize = fileSize(@oldFile, "Megabytes")
+                @oldModified = getFileDetail(@oldFile, "Last Modified Date")
+                @oldModifiedText = formatTimestamp(@oldModified, "Short", "Short")
+                @reportText += "\n{@oldName}\nTamaño: {@oldSize} MB | Modificado: {@oldModifiedText}\n"
+            }
+        }
+
+        @reportDocument = text(@reportText)
+        @namedReport = setName(@reportDocument, "Informe_Descargas.txt", true)
+        @temporaryReport = saveFile("Informe_Descargas.txt", @namedReport, true)
+        moveFile(@temporaryReport, @reportsFolder, true)
+        alert("Informe creado en 00_INFORMES.", "Informe terminado")
+
+    item "Ver 30 más pesados":
+        quicklook(@largestItems)
+
+    item "Ver 50 más antiguos":
+        quicklook(@oldestItems)
+}

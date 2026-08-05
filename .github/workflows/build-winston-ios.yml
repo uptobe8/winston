@@ -66,18 +66,18 @@ jobs:
           zip -qry dist/Santuario-Winston-Simulator-App.zip dist/Santuario-Winston-Simulator.app
           rm -rf dist/Santuario-Winston-Simulator.app
           zip -qry dist/Santuario-Winston-iOS-Xcode-v34.zip ios package.json package-lock.json capacitor.config.json www README.md ACCESO.txt BUILD-REPORT.json
-          cat > dist/INSTALACION-IPHONE.txt <<'EOF'
-SANTUARIO WINSTON · INSTALACIÓN EN IPHONE
-
-1. Abre Santuario-Winston-iOS-Xcode-v34.zip en un Mac.
-2. Abre ios/App/App.xcodeproj con Xcode.
-3. Conecta el iPhone al Mac.
-4. En Xcode selecciona el proyecto App, pestaña Signing & Capabilities.
-5. Elige tu Apple ID/Team y deja que Xcode gestione la firma automáticamente.
-6. Selecciona tu iPhone como dispositivo y pulsa Run.
-
-El proyecto está validado sin firma. Apple exige una identidad de firma para instalarlo en un iPhone físico; esa identidad pertenece a la cuenta Apple del propietario.
-EOF
+          printf '%s\n' \
+            'SANTUARIO WINSTON · INSTALACIÓN EN IPHONE' \
+            '' \
+            '1. Abre Santuario-Winston-iOS-Xcode-v34.zip en un Mac.' \
+            '2. Abre ios/App/App.xcodeproj con Xcode.' \
+            '3. Conecta el iPhone al Mac.' \
+            '4. En Xcode selecciona el proyecto App, pestaña Signing & Capabilities.' \
+            '5. Elige tu Apple ID/Team y deja que Xcode gestione la firma automáticamente.' \
+            '6. Selecciona tu iPhone como dispositivo y pulsa Run.' \
+            '' \
+            'El proyecto está validado sin firma. Apple exige una identidad de firma para instalarlo en un iPhone físico.' \
+            > dist/INSTALACION-IPHONE.txt
 
       - uses: actions/upload-artifact@v4
         with:

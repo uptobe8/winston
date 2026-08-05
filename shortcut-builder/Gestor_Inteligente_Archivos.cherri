@@ -1,4 +1,4 @@
-#define name Gestor Inteligente de Archivos
+#define name Organizador Descargas
 #define color blue
 #define glyph folder
 #define version 18
@@ -8,204 +8,128 @@
 #include 'actions/calendar'
 #include 'actions/text'
 
+#ref Downloads eyJmaWxlbmFtZSI6IkRvd25sb2FkcyIsImRpc3BsYXlOYW1lIjoiRG93bmxvYWRzIiwiZmlsZUxvY2F0aW9uIjp7IldGRmlsZUxvY2F0aW9uVHlwZSI6ImlDbG91ZCIsImZpbGVQcm92aWRlckRvbWFpbklEIjoiY29tLmFwcGxlLkNsb3VkRG9jcy5pQ2xvdWREcml2ZUZpbGVQcm92aWRlciIsInJlbGF0aXZlU3VicGF0aCI6ImNvbX5hcHBsZX5DbG91ZERvY3MvRG93bmxvYWRzIn19
+
 action 'file.move' moveFile(&variable file: 'WFFile', &variable folder: 'WFFolder', bool ?replaceExisting: 'WFReplaceExisting' = false)
 
-menu "Gestor Inteligente de Archivos" {
-    item "Organizar archivos":
-        menu "Cómo quieres organizarlos" {
-            item "Cliente o proyecto":
-                @rootClient = selectFolder(false)
-                @clientItems = getFolderContents(@rootClient, false)
-                @clientSelected = chooseFromList(@clientItems, "Selecciona los archivos del cliente o proyecto", true, false)
-                @clientNameInput = prompt("Nombre del cliente o proyecto", "Text", "Proyecto")
-                @clientName = text(@clientNameInput)
-                @clientFolder = createFolder(@clientName, @rootClient)
-                for clientFile in @clientSelected {
-                    moveFile(@clientFile, @clientFolder, false)
-                    deleteFiles(@clientFile, false)
-                }
-                alert("Archivos organizados en la carpeta del cliente o proyecto.")
+@downloads = file(Downloads)
+@originalItems = getFolderContents(@downloads, false)
 
-            item "Viaje":
-                @rootTrip = selectFolder(false)
-                @tripItems = getFolderContents(@rootTrip, false)
-                @tripSelected = chooseFromList(@tripItems, "Selecciona los archivos del viaje", true, false)
-                @tripNameInput = prompt("Nombre del viaje", "Text", "Viaje")
-                @tripName = text(@tripNameInput)
-                @tripFolder = createFolder(@tripName, @rootTrip)
-                for tripFile in @tripSelected {
-                    moveFile(@tripFile, @tripFolder, false)
-                    deleteFiles(@tripFile, false)
-                }
-                alert("Archivos organizados en la carpeta del viaje.")
+@reportsFolder = createFolder("00_INFORMES", @downloads)
+@clientsFolder = createFolder("01_CLIENTES_Y_PROYECTOS", @downloads)
+@travelFolder = createFolder("02_VIAJES", @downloads)
+@peopleFolder = createFolder("03_PERSONAS", @downloads)
+@screensFolder = createFolder("04_CAPTURAS", @downloads)
+@imagesFolder = createFolder("05_IMAGENES", @downloads)
+@videosFolder = createFolder("06_VIDEOS", @downloads)
+@documentsFolder = createFolder("07_DOCUMENTOS", @downloads)
+@archivesFolder = createFolder("08_COMPRIMIDOS", @downloads)
+@versionsFolder = createFolder("09_VERSIONES_Y_BORRADORES", @downloads)
+@otherFolder = createFolder("10_OTROS", @downloads)
 
-            item "Persona":
-                @rootPerson = selectFolder(false)
-                @personItems = getFolderContents(@rootPerson, false)
-                @personSelected = chooseFromList(@personItems, "Selecciona los archivos relacionados con esa persona", true, false)
-                @personNameInput = prompt("Nombre de la persona", "Text", "Persona")
-                @personName = text(@personNameInput)
-                @personFolder = createFolder(@personName, @rootPerson)
-                for personFile in @personSelected {
-                    moveFile(@personFile, @personFolder, false)
-                    deleteFiles(@personFile, false)
-                }
-                alert("Archivos organizados en la carpeta de la persona.")
+@organized = 0
 
-            item "Versiones de algo":
-                @rootVersion = selectFolder(false)
-                @versionItems = getFolderContents(@rootVersion, false)
-                @versionSelected = chooseFromList(@versionItems, "Selecciona borradores, copias y versiones", true, false)
-                @versionNameInput = prompt("Nombre del trabajo o documento", "Text", "Versiones")
-                @versionName = text(@versionNameInput)
-                @versionFolder = createFolder(@versionName, @rootVersion)
-                for versionFile in @versionSelected {
-                    moveFile(@versionFile, @versionFolder, false)
-                    deleteFiles(@versionFile, false)
-                }
-                alert("Versiones agrupadas.")
+for item in @originalItems {
+    @itemType = typeOf(@item)
+    if @itemType != "Folder" {
+        @itemName = getFileDetail(@item, "Name")
+        @itemNameLower = lowercase(@itemName)
+        @itemExtension = getFileDetail(@item, "File Extension")
+        @itemExtensionLower = lowercase(@itemExtension)
+        @destination = @otherFolder
 
-            item "Clasificación automática":
-                @rootAuto = selectFolder(false)
-                @autoItems = getFolderContents(@rootAuto, false)
-                @screensFolder = createFolder("01_Capturas", @rootAuto)
-                @imagesFolder = createFolder("02_Imagenes", @rootAuto)
-                @videosFolder = createFolder("03_Videos", @rootAuto)
-                @documentsFolder = createFolder("04_Documentos", @rootAuto)
-                @archivesFolder = createFolder("05_Comprimidos", @rootAuto)
-                @versionsFolder = createFolder("06_Versiones_y_copias", @rootAuto)
-                @otherFolder = createFolder("07_Otros", @rootAuto)
-                @organized = 0
-
-                for autoFile in @autoItems {
-                    @autoType = typeOf(@autoFile)
-                    if @autoType != "Folder" {
-                        @autoName = getFileDetail(@autoFile, "Name")
-                        @autoNameLower = lowercase(@autoName)
-                        @autoExtension = getFileDetail(@autoFile, "File Extension")
-                        @autoExtensionLower = lowercase(@autoExtension)
-                        @destination = @otherFolder
-
-                        if @autoNameLower contains "screenshot" || @autoNameLower contains "captura" || @autoNameLower contains "pantallazo" {
-                            @destination = @screensFolder
+        if @itemNameLower contains "screenshot" || @itemNameLower contains "captura" || @itemNameLower contains "pantallazo" {
+            @destination = @screensFolder
+        } else {
+            if @itemNameLower contains "version" || @itemNameLower contains "versión" || @itemNameLower contains "borrador" || @itemNameLower contains "draft" || @itemNameLower contains "copia" || @itemNameLower contains "copy" || @itemNameLower contains " v1" || @itemNameLower contains " v2" || @itemNameLower contains " v3" || @itemNameLower contains " v4" || @itemNameLower contains " v5" {
+                @destination = @versionsFolder
+            } else {
+                if @itemNameLower contains "viaje" || @itemNameLower contains "vuelo" || @itemNameLower contains "flight" || @itemNameLower contains "hotel" || @itemNameLower contains "reserva" || @itemNameLower contains "boarding" || @itemNameLower contains "billete" || @itemNameLower contains "ruta" || @itemNameLower contains "vacaciones" || @itemNameLower contains "pasaporte" {
+                    @destination = @travelFolder
+                } else {
+                    if @itemNameLower contains "cliente" || @itemNameLower contains "proyecto" || @itemNameLower contains "project" || @itemNameLower contains "brief" || @itemNameLower contains "presupuesto" || @itemNameLower contains "factura" || @itemNameLower contains "contrato" || @itemNameLower contains "propuesta" || @itemNameLower contains "campaña" || @itemNameLower contains "marca" || @itemNameLower contains "logo" {
+                        @destination = @clientsFolder
+                    } else {
+                        if @itemNameLower contains "persona" || @itemNameLower contains "selfie" || @itemNameLower contains "retrato" || @itemNameLower contains "portrait" || @itemNameLower contains "curriculum" || @itemNameLower contains "currículum" || @itemNameLower contains "dni" {
+                            @destination = @peopleFolder
                         } else {
-                            if @autoNameLower contains "version" || @autoNameLower contains "versión" || @autoNameLower contains "final" || @autoNameLower contains "borrador" || @autoNameLower contains "draft" || @autoNameLower contains "copia" || @autoNameLower contains "copy" || @autoNameLower contains " v1" || @autoNameLower contains " v2" || @autoNameLower contains " v3" || @autoNameLower contains " v4" || @autoNameLower contains " v5" {
-                                @destination = @versionsFolder
+                            if @itemExtensionLower == "jpg" || @itemExtensionLower == "jpeg" || @itemExtensionLower == "png" || @itemExtensionLower == "heic" || @itemExtensionLower == "webp" || @itemExtensionLower == "gif" || @itemExtensionLower == "tif" || @itemExtensionLower == "tiff" || @itemExtensionLower == "svg" {
+                                @destination = @imagesFolder
                             } else {
-                                if @autoExtensionLower == "jpg" || @autoExtensionLower == "jpeg" || @autoExtensionLower == "png" || @autoExtensionLower == "heic" || @autoExtensionLower == "webp" || @autoExtensionLower == "gif" || @autoExtensionLower == "tif" || @autoExtensionLower == "tiff" {
-                                    @destination = @imagesFolder
+                                if @itemExtensionLower == "mp4" || @itemExtensionLower == "mov" || @itemExtensionLower == "m4v" || @itemExtensionLower == "avi" || @itemExtensionLower == "mkv" || @itemExtensionLower == "webm" {
+                                    @destination = @videosFolder
                                 } else {
-                                    if @autoExtensionLower == "mp4" || @autoExtensionLower == "mov" || @autoExtensionLower == "m4v" || @autoExtensionLower == "avi" || @autoExtensionLower == "mkv" || @autoExtensionLower == "webm" {
-                                        @destination = @videosFolder
+                                    if @itemExtensionLower == "pdf" || @itemExtensionLower == "doc" || @itemExtensionLower == "docx" || @itemExtensionLower == "xls" || @itemExtensionLower == "xlsx" || @itemExtensionLower == "ppt" || @itemExtensionLower == "pptx" || @itemExtensionLower == "txt" || @itemExtensionLower == "rtf" || @itemExtensionLower == "pages" || @itemExtensionLower == "numbers" || @itemExtensionLower == "key" || @itemExtensionLower == "csv" {
+                                        @destination = @documentsFolder
                                     } else {
-                                        if @autoExtensionLower == "pdf" || @autoExtensionLower == "doc" || @autoExtensionLower == "docx" || @autoExtensionLower == "xls" || @autoExtensionLower == "xlsx" || @autoExtensionLower == "ppt" || @autoExtensionLower == "pptx" || @autoExtensionLower == "txt" || @autoExtensionLower == "rtf" || @autoExtensionLower == "pages" || @autoExtensionLower == "numbers" || @autoExtensionLower == "key" || @autoExtensionLower == "csv" {
-                                            @destination = @documentsFolder
-                                        } else {
-                                            if @autoExtensionLower == "zip" || @autoExtensionLower == "rar" || @autoExtensionLower == "7z" || @autoExtensionLower == "gz" || @autoExtensionLower == "tar" {
-                                                @destination = @archivesFolder
-                                            }
+                                        if @itemExtensionLower == "zip" || @itemExtensionLower == "rar" || @itemExtensionLower == "7z" || @itemExtensionLower == "gz" || @itemExtensionLower == "tar" {
+                                            @destination = @archivesFolder
                                         }
                                     }
                                 }
                             }
                         }
-
-                        moveFile(@autoFile, @destination, false)
-                        deleteFiles(@autoFile, false)
-                        @organized += 1
                     }
                 }
-                alert("Se han organizado {@organized} archivos.", "Organización terminada")
-        }
-
-    item "Informe para borrar":
-        @reportRoot = selectFolder(false)
-        @reportItems = getFolderContents(@reportRoot, true)
-        @largestItems = filterFiles(@reportItems, 50, "File Size", "Biggest First")
-        @oldestItems = filterFiles(@reportItems, 100, "Last Modified Date", "Oldest First")
-        @reportText = "INFORME DE ARCHIVOS PARA REVISAR\n\nNOTA: iPhone no expone la fecha de última apertura. El criterio equivalente disponible es la última modificación.\n\n50 ARCHIVOS MÁS PESADOS\n"
-
-        for largeFile in @largestItems {
-            @largeType = typeOf(@largeFile)
-            if @largeType != "Folder" {
-                @largeName = getFileDetail(@largeFile, "Name")
-                @largeSize = fileSize(@largeFile, "Megabytes")
-                @largeModified = getFileDetail(@largeFile, "Last Modified Date")
-                @largeModifiedText = formatTimestamp(@largeModified, "Short", "Short")
-                @largePath = getFileDetail(@largeFile, "File Path")
-                @reportText += "\n{@largeName}\nTamaño: {@largeSize} MB | Modificado: {@largeModifiedText}\n{@largePath}\n"
             }
         }
 
-        @reportText += "\n\n100 ARCHIVOS MÁS ANTIGUOS POR ÚLTIMA MODIFICACIÓN\n"
+        moveFile(@item, @destination, false)
+        @organized += 1
+    }
+}
 
-        for oldReportFile in @oldestItems {
-            @oldReportType = typeOf(@oldReportFile)
-            if @oldReportType != "Folder" {
-                @oldReportName = getFileDetail(@oldReportFile, "Name")
-                @oldReportSize = fileSize(@oldReportFile, "Megabytes")
-                @oldReportModified = getFileDetail(@oldReportFile, "Last Modified Date")
-                @oldReportModifiedText = formatTimestamp(@oldReportModified, "Short", "Short")
-                @oldReportPath = getFileDetail(@oldReportFile, "File Path")
-                @reportText += "\n{@oldReportName}\nTamaño: {@oldReportSize} MB | Modificado: {@oldReportModifiedText}\n{@oldReportPath}\n"
-            }
-        }
+@allItems = getFolderContents(@downloads, true)
+@largestItems = filterFiles(@allItems, 50, "File Size", "Biggest First")
+@oldestItems = filterFiles(@allItems, 100, "Last Modified Date", "Oldest First")
+@reportText = "INFORME AUTOMÁTICO DE DESCARGAS\n\nArchivos organizados: {@organized}\n\n50 ARCHIVOS MÁS PESADOS\n"
 
-        @reportDocument = text(@reportText)
-        @namedReport = setName(@reportDocument, "Informe_archivos_para_borrar.txt", true)
-        quicklook(@namedReport)
-        menu "Informe preparado" {
-            item "Guardar informe":
-                saveFilePrompt(@namedReport, false)
-            item "Cerrar":
-                nothing()
-        }
+for largeFile in @largestItems {
+    @largeType = typeOf(@largeFile)
+    if @largeType != "Folder" {
+        @largeName = getFileDetail(@largeFile, "Name")
+        @largeSize = fileSize(@largeFile, "Megabytes")
+        @largeModified = getFileDetail(@largeFile, "Last Modified Date")
+        @largeModifiedText = formatTimestamp(@largeModified, "Short", "Short")
+        @largePath = getFileDetail(@largeFile, "File Path")
+        @reportText += "\n{@largeName}\nTamaño: {@largeSize} MB | Modificado: {@largeModifiedText}\n{@largePath}\n"
+    }
+}
 
-    item "Limpiar archivos":
-        menu "Qué quieres revisar" {
-            item "Archivos más pesados":
-                @heavyRoot = selectFolder(false)
-                @heavyAll = getFolderContents(@heavyRoot, true)
-                @heavyCandidates = filterFiles(@heavyAll, 50, "File Size", "Biggest First")
-                @heavySelected = chooseFromList(@heavyCandidates, "Selecciona los archivos que quieres eliminar", true, false)
-                @heavyCount = count(@heavySelected)
-                confirm("Se enviarán {@heavyCount} archivos a Eliminados recientemente.", "Confirmar limpieza")
-                deleteFiles(@heavySelected, false)
-                alert("Limpieza terminada.")
+@reportText += "\n\n100 ARCHIVOS MÁS ANTIGUOS POR ÚLTIMA MODIFICACIÓN\n"
 
-            item "Archivos más antiguos":
-                @oldRoot = selectFolder(false)
-                @oldAll = getFolderContents(@oldRoot, true)
-                @oldCandidates = filterFiles(@oldAll, 100, "Last Modified Date", "Oldest First")
-                @oldSelected = chooseFromList(@oldCandidates, "Selecciona los archivos antiguos que quieres eliminar", true, false)
-                @oldCount = count(@oldSelected)
-                confirm("Se enviarán {@oldCount} archivos a Eliminados recientemente.", "Confirmar limpieza")
-                deleteFiles(@oldSelected, false)
-                alert("Limpieza terminada.")
+for oldFile in @oldestItems {
+    @oldType = typeOf(@oldFile)
+    if @oldType != "Folder" {
+        @oldName = getFileDetail(@oldFile, "Name")
+        @oldSize = fileSize(@oldFile, "Megabytes")
+        @oldModified = getFileDetail(@oldFile, "Last Modified Date")
+        @oldModifiedText = formatTimestamp(@oldModified, "Short", "Short")
+        @oldPath = getFileDetail(@oldFile, "File Path")
+        @reportText += "\n{@oldName}\nTamaño: {@oldSize} MB | Modificado: {@oldModifiedText}\n{@oldPath}\n"
+    }
+}
 
-            item "Versiones, copias y borradores":
-                @duplicatesRoot = selectFolder(false)
-                @duplicatesAll = getFolderContents(@duplicatesRoot, true)
-                @duplicatesCandidates: array
+@reportDocument = text(@reportText)
+@namedReport = setName(@reportDocument, "Informe_Descargas.txt", true)
+@temporaryReport = saveFile("Informe_Descargas.txt", @namedReport, true)
+moveFile(@temporaryReport, @reportsFolder, true)
 
-                for duplicateFile in @duplicatesAll {
-                    @duplicateType = typeOf(@duplicateFile)
-                    if @duplicateType != "Folder" {
-                        @duplicateName = getFileDetail(@duplicateFile, "Name")
-                        @duplicateNameLower = lowercase(@duplicateName)
-                        if @duplicateNameLower contains "version" || @duplicateNameLower contains "versión" || @duplicateNameLower contains "final" || @duplicateNameLower contains "borrador" || @duplicateNameLower contains "draft" || @duplicateNameLower contains "copia" || @duplicateNameLower contains "copy" || @duplicateNameLower contains " v1" || @duplicateNameLower contains " v2" || @duplicateNameLower contains " v3" || @duplicateNameLower contains " v4" || @duplicateNameLower contains " v5" {
-                            @duplicatesCandidates += @duplicateFile
-                        }
-                    }
-                }
+menu "Descargas organizadas: {@organized} archivos" {
+    item "Terminar":
+        alert("La estructura está dentro de iCloud Drive/Descargas. El informe está en 00_INFORMES.", "Organización terminada")
 
-                @duplicatesSelected = chooseFromList(@duplicatesCandidates, "Selecciona las versiones que quieres eliminar", true, false)
-                @duplicatesCount = count(@duplicatesSelected)
-                confirm("Se enviarán {@duplicatesCount} archivos a Eliminados recientemente.", "Confirmar limpieza")
-                deleteFiles(@duplicatesSelected, false)
-                alert("Limpieza terminada.")
-        }
+    item "Revisar 50 archivos más pesados":
+        @heavySelected = chooseFromList(@largestItems, "Selecciona solo los archivos que quieras enviar a Eliminados recientemente", true, false)
+        @heavyCount = count(@heavySelected)
+        confirm("Se enviarán {@heavyCount} archivos a Eliminados recientemente.", "Confirmar eliminación")
+        deleteFiles(@heavySelected, false)
+        alert("Archivos enviados a Eliminados recientemente.")
 
-    item "Salir":
-        stop()
+    item "Revisar 100 archivos más antiguos":
+        @oldSelected = chooseFromList(@oldestItems, "Selecciona solo los archivos que quieras enviar a Eliminados recientemente", true, false)
+        @oldCount = count(@oldSelected)
+        confirm("Se enviarán {@oldCount} archivos a Eliminados recientemente.", "Confirmar eliminación")
+        deleteFiles(@oldSelected, false)
+        alert("Archivos enviados a Eliminados recientemente.")
 }

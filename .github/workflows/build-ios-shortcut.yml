@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - build-ios-files-shortcut
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
